@@ -7,8 +7,9 @@ void main() {
 class Task {
   final String title;
   bool isCompleted;
+  String priority;
 
-  Task({required this.title, this.isCompleted = false});
+  Task({required this.title, this.isCompleted = false, this.priority = 'Low'});
 }
 
 class TaskApp extends StatelessWidget {
@@ -58,6 +59,12 @@ class _TaskHomePageState extends State<TaskHomePage> {
     });
   }
 
+  void _updateTaskPriority(int index, String newPriority) {
+    setState(() {
+      _tasks[index].priority = newPriority;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,6 +105,26 @@ class _TaskHomePageState extends State<TaskHomePage> {
                     onChanged: (value) => _completeTask(index),
                   ),
                   title: Text(task.title),
+                  subtitle: Row(
+                    children: [
+                      const Text('Priority: '),
+                      DropdownButton<String>(
+                        value: task.priority,
+                        items: <String>['Low', 'Medium', 'High']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            _updateTaskPriority(index, newValue);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () => _removeTask(index),
