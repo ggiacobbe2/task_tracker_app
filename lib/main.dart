@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 void main() {
   runApp(TaskApp());
@@ -10,7 +12,22 @@ class Task {
   String priority;
 
   Task({required this.title, this.isCompleted = false, this.priority = 'Low'});
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'isCompleted': isCompleted,
+        'priority': priority,
+      };
+
+  factory Task.fromJson(Map<String, dynamic> json) {
+    return Task(
+      title: json['title'],
+      isCompleted: json['isCompleted'],
+      priority: json['priority'],
+    );
+  }
 }
+
 
 class TaskApp extends StatefulWidget {
   const TaskApp({super.key});
@@ -21,6 +38,31 @@ class TaskApp extends StatefulWidget {
 
 class _TaskAppState extends State<TaskApp> {
   bool _isDarkMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isDarkMode = prefs.getBool('isDarkMode') ?? false;
+    });
+  }
+
+  Future<void> _saveTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isDarkMode', _isDarkMode);
+  }
+
+  void _toggleTheme() {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+    });
+    _saveTheme();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,12 +76,6 @@ class _TaskAppState extends State<TaskApp> {
         isDarkMode: _isDarkMode,
       ),
     );
-  }
-
-  void _toggleTheme() {
-    setState(() {
-      _isDarkMode = !_isDarkMode;
-    });
   }
 }
 
@@ -61,6 +97,29 @@ class _TaskHomePageState extends State<TaskHomePage> {
   final List<Task> _tasks = [];
   final TextEditingController _taskController = TextEditingController();
   String _selectedPriority = 'Low';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? tasksJson = prefs.getString('tasks');
+    if (tasksJson != null) {
+      final List<dynamic> taskList = json.decode(tasksJson);
+      setState(() {
+        _tasks.addAll(taskList.map((task) => Task.fromJson(task)).toList());
+      });
+    }
+  }
+
+  Future<void> _saveTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedTasks = jsonEncode(_tasks.map((task) => task.toJson()).toList());
+    prefs.setString('tasks', encodedTasks);
+  }
 
   void _addTask() {
     if (_taskController.text.isNotEmpty) {
