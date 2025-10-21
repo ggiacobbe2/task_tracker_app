@@ -37,12 +37,17 @@ class TaskHomePage extends StatefulWidget {
 class _TaskHomePageState extends State<TaskHomePage> {
   final List<Task> _tasks = [];
   final TextEditingController _taskController = TextEditingController();
+  String _selectedPriority = 'Low';
 
   void _addTask() {
     if (_taskController.text.isNotEmpty) {
       setState(() {
-        _tasks.add(Task(title: _taskController.text));
+        _tasks.add(Task(
+          title: _taskController.text, priority: _selectedPriority
+        ));
         _taskController.clear();
+        _selectedPriority = 'Low';
+        _sortTasksByPriority();
       });
     }
   }
@@ -56,12 +61,28 @@ class _TaskHomePageState extends State<TaskHomePage> {
   void _completeTask (int index) {
     setState(() {
       _tasks[index].isCompleted = !_tasks[index].isCompleted;
+      _sortTasksByPriority();
     });
   }
 
-  void _updateTaskPriority(int index, String newPriority) {
-    setState(() {
-      _tasks[index].priority = newPriority;
+  void _sortTasksByPriority() {
+    _tasks.sort((a, b) {
+      if (a.isCompleted != b.isCompleted) {
+        return a.isCompleted ? 1 : -1;
+      }
+      
+      int priorityValue(String p) {
+        switch (p) {
+          case 'High':
+            return 3;
+          case 'Medium':
+            return 2;
+          default:
+            return 1;
+        }
+      }
+
+      return priorityValue(b.priority).compareTo(priorityValue(a.priority));
     });
   }
 
@@ -78,6 +99,7 @@ class _TaskHomePageState extends State<TaskHomePage> {
             child: Row(
               children: [
                 Expanded(
+                  flex: 4,
                   child: TextField(
                     controller: _taskController,
                     decoration: const InputDecoration(
@@ -87,6 +109,31 @@ class _TaskHomePageState extends State<TaskHomePage> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedPriority,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Priority',
+                      contentPadding: EdgeInsets.all(8.0),
+                    ),
+                    items: <String>['Low', 'Medium', 'High']
+                        .map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          _selectedPriority = newValue;
+                        });
+                      }
+                    },
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: _addTask,
@@ -104,27 +151,15 @@ class _TaskHomePageState extends State<TaskHomePage> {
                     value: task.isCompleted,
                     onChanged: (value) => _completeTask(index),
                   ),
-                  title: Text(task.title),
-                  subtitle: Row(
-                    children: [
-                      const Text('Priority: '),
-                      DropdownButton<String>(
-                        value: task.priority,
-                        items: <String>['Low', 'Medium', 'High']
-                            .map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            _updateTaskPriority(index, newValue);
-                          }
-                        },
-                      ),
-                    ],
+                  title: Text(
+                    task.title,
+                    style: TextStyle(
+                      decoration: task.isCompleted
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
                   ),
+                  subtitle: Text('Priority: ${task.priority}'),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () => _removeTask(index),
