@@ -4,6 +4,13 @@ void main() {
   runApp(TaskApp());
 }
 
+class Task {
+  final String title;
+  bool isCompleted;
+
+  Task({required this.title, this.isCompleted = false});
+}
+
 class TaskApp extends StatelessWidget {
   const TaskApp({super.key});
 
@@ -27,13 +34,13 @@ class TaskHomePage extends StatefulWidget {
 }
 
 class _TaskHomePageState extends State<TaskHomePage> {
-  final List<String> _tasks = [];
+  final List<Task> _tasks = [];
   final TextEditingController _taskController = TextEditingController();
 
   void _addTask() {
     if (_taskController.text.isNotEmpty) {
       setState(() {
-        _tasks.add(_taskController.text);
+        _tasks.add(Task(title: _taskController.text));
         _taskController.clear();
       });
     }
@@ -42,6 +49,12 @@ class _TaskHomePageState extends State<TaskHomePage> {
   void _removeTask(int index) {
     setState(() {
       _tasks.removeAt(index);
+    });
+  }
+
+  void _completeTask (int index) {
+    setState(() {
+      _tasks[index].isCompleted = !_tasks[index].isCompleted;
     });
   }
 
@@ -62,9 +75,11 @@ class _TaskHomePageState extends State<TaskHomePage> {
                     controller: _taskController,
                     decoration: const InputDecoration(
                       hintText: 'Enter a task',
+                      border: OutlineInputBorder(),
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: _addTask,
@@ -76,8 +91,13 @@ class _TaskHomePageState extends State<TaskHomePage> {
             child: ListView.builder(
               itemCount: _tasks.length,
               itemBuilder: (context, index) {
+                final task = _tasks[index];
                 return ListTile(
-                  title: Text(_tasks[index]),
+                  leading: Checkbox(
+                    value: task.isCompleted,
+                    onChanged: (value) => _completeTask(index),
+                  ),
+                  title: Text(task.title),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () => _removeTask(index),
